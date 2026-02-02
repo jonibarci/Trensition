@@ -1,0 +1,86 @@
+<section class="page-card">
+  @if (loading()) {
+    <p class="status">Loading transcript...</p>
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  } @else if (transcript()) {
+    <header class="detail-header">
+      <h1>{{ transcript()!.title }}</h1>
+      <p class="meta">
+        {{ transcript()!.company }}
+        @if (transcript()!.ticker) { ({{ transcript()!.ticker }}) }
+        - {{ transcript()!.date }}
+      </p>
+      <p class="meta">
+        Quarter {{ transcript()!.quarter }} - FY {{ transcript()!.fiscal_year }}
+      </p>
+    </header>
+
+    @if (searchQuery()) {
+      <div class="search-context">
+        <span class="search-icon">🔍</span>
+        <span>Search results for: <strong>{{ searchQuery() }}</strong></span>
+        <span class="search-legend">
+          <mark class="search-highlight-demo">Highlighted</mark> in transcript
+        </span>
+      </div>
+    }
+
+    @if (highlightedTurns().size > 0) {
+      <div class="qa-context">
+        <span class="qa-icon">💡</span>
+        <span>Q&A context: {{ highlightedTurns().size }} relevant turn(s) highlighted below</span>
+      </div>
+    }
+
+    @if (hasOrganizations()) {
+      <div class="chips">
+        <span class="chip-label">Organizations:</span>
+        @for (org of transcript()!.organizations; track org) {
+          <button
+            class="chip chip-clickable"
+            (click)="highlightOrganization(org)"
+            [class.active]="selectedOrg() === org"
+            title="Click to highlight {{ org }} in transcript">
+            {{ org }}
+          </button>
+        }
+        @if (selectedOrg()) {
+          <button class="chip chip-clear" (click)="clearHighlight()">
+            Clear highlight
+          </button>
+        }
+      </div>
+    }
+
+    <section class="data-section">
+      <h3>Speakers</h3>
+      <div class="speakers-list">
+        @for (speaker of transcript()!.speakers; track speaker.id) {
+          <div class="speaker-item">
+            <strong>{{ speaker.name }}</strong>
+            @if (speaker.role) { - {{ speaker.role }} }
+            @if (speaker.org) { <span> at </span><span [innerHTML]="highlightOrgText(speaker.org)"></span> }
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="data-section">
+      <h3>Transcript Turns</h3>
+      <div class="turns-list">
+        @for (turn of transcript()!.turns; track turn.index) {
+          <div class="turn-item" [class.qa-highlighted]="highlightedTurns().has(turn.index)">
+            <div class="turn-header">
+              <strong>{{ turn.speaker_name }}</strong>
+              @if (turn.start !== null) {
+                <span class="turn-time">{{ formatTime(turn.start) }} - {{ formatTime(turn.end) }}</span>
+              }
+            </div>
+            <div class="turn-text" [innerHTML]="highlightTurnText(turn.text)"></div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</section>

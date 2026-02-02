@@ -1,0 +1,58 @@
+<section class="page-card">
+  <header class="page-header">
+    <h1>Transcripts</h1>
+    <p>Search earnings call transcripts by company and keyword.</p>
+    <p class="search-tips">
+      <strong>Search tips:</strong> Use quotes for exact phrases (e.g., <code>"revenue was $11.5 billion"</code>),
+      AND/OR for logic (e.g., <code>revenue AND growth</code>), or minus to exclude (e.g., <code>revenue -decline</code>)
+    </p>
+  </header>
+
+  <form class="filters" (ngSubmit)="search()">
+    <label class="field">
+      <span>Company</span>
+      <input
+        type="text"
+        name="company"
+        placeholder="e.g., Apple"
+        [(ngModel)]="companyValue"
+      />
+    </label>
+
+    <label class="field">
+      <span>Search</span>
+      <input
+        type="text"
+        name="query"
+        placeholder='e.g., "revenue was $11.5 billion" or AI strategy'
+        [(ngModel)]="queryValue"
+      />
+    </label>
+
+    <button type="submit" [disabled]="loading()">Search</button>
+  </form>
+
+  @if (loading()) {
+    <p class="status">Loading transcripts...</p>
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  } @else if (hasSearched() && !hasResults()) {
+    <p class="status">No transcripts found. Try a different filter.</p>
+  }
+
+  @if (hasResults()) {
+    <ul class="transcript-list">
+      @for (item of transcripts(); track item.id) {
+        <li class="transcript-item">
+          <a [routerLink]="['/transcripts', item.id]" [queryParams]="{q: query() || null}">{{ item.title }}</a>
+          <div class="meta">
+            {{ item.company }}
+            @if (item.ticker) { ({{ item.ticker }}) }
+            - {{ item.date }}
+          </div>
+          <p class="snippet">{{ item.snippet }}</p>
+        </li>
+      }
+    </ul>
+  }
+</section>

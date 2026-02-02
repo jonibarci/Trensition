@@ -1,0 +1,77 @@
+<section class="page-card">
+  <header class="page-header">
+    <h1>Ingest</h1>
+    <p>Request the backend to ingest a company transcript set.</p>
+  </header>
+
+  <!-- Cookie Status Section -->
+  <div class="cookie-status">
+    @if (cookieLoading()) {
+      <p class="status">Checking cookie status...</p>
+    } @else if (cookieStatus()) {
+      <div class="status-row" [class.cookie-valid]="cookieStatus()!.valid" [class.cookie-invalid]="!cookieStatus()!.valid">
+        <span class="status-icon">{{ cookieStatus()!.valid ? '✓' : '✗' }}</span>
+        <span class="status-message">{{ cookieStatus()!.message }}</span>
+        <div class="button-group">
+          @if (!cookieStatus()!.valid) {
+            <button
+              type="button"
+              class="refresh-button"
+              (click)="refreshCookies()"
+              [disabled]="cookieRefreshing()">
+              {{ cookieRefreshing() ? 'Refreshing...' : 'Refresh Cookies' }}
+            </button>
+          }
+          <button
+            type="button"
+            class="delete-button"
+            (click)="deleteCookies()"
+            [disabled]="cookieDeleting()"
+            title="Delete cookies for testing">
+            {{ cookieDeleting() ? 'Deleting...' : '🗑️ Delete' }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <form class="ingest-form" (ngSubmit)="ingest()">
+    <label class="field">
+      <span>Company</span>
+      <input
+        type="text"
+        name="company"
+        placeholder="e.g., AAPL, TSLA, META"
+        [(ngModel)]="companyValue"
+      />
+    </label>
+
+    <label class="field">
+      <span>Limit (optional)</span>
+      <input
+        type="number"
+        name="limit"
+        placeholder="Leave empty to ingest all"
+        min="1"
+        max="100"
+        [(ngModel)]="limitValue"
+      />
+      <small>Number of transcripts to ingest. Leave empty to ingest all discovered transcripts.</small>
+    </label>
+
+    <button type="submit" [disabled]="loading() || !cookieStatus()?.valid">Ingest</button>
+  </form>
+
+  @if (loading()) {
+    <p class="status">Ingesting transcripts...</p>
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  @if (response()) {
+    <div class="result">
+      <p>{{ response()!.message }}</p>
+      <p><strong>Ingested:</strong> {{ response()!.ingested }}</p>
+    </div>
+  }
+</section>

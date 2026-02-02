@@ -1,0 +1,27 @@
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+DEPLOYMENT.md
+CLEANUP_SUMMARY.md
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Yahoo cookies (will be handled separately)
+.yahoo_storage_state.json

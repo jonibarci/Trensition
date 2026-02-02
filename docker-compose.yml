@@ -1,0 +1,66 @@
+services:
+  # PostgreSQL database with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: trensition-db
+    environment:
+      POSTGRES_DB: earnings
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trensition-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trensition-backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/earnings}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PYTHONUNBUFFERED: 1
+      HEADLESS: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount yahoo cookies directory (backend will manage file creation)
+      - .yahoo_cookies:/app/.yahoo_cookies
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - trensition-network
+    restart: unless-stopped
+
+  # Frontend Angular app
+  frontend:
+    build:
+      context: ./frontend/ui
+      dockerfile: Dockerfile
+    container_name: trensition-frontend
+    environment:
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+    depends_on:
+      - backend
+    networks:
+      - trensition-network
+    restart: unless-stopped
+
+networks:
+  trensition-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
