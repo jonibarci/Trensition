@@ -130,7 +130,7 @@ curl -X POST http://localhost:8000/yahoo/cookies/refresh \
 
 For local development without Docker, see:
 - Backend setup: [backend/README.md](backend/README.md)
-- Frontend setup: [frontend/ui/README.md](frontend/ui/README.md) (if exists)
+- Frontend setup: [frontend/ui/README.md](frontend/ui/README.md)
 - Deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## Testing
