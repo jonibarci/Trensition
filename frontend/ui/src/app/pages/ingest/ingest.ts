@@ -25,7 +25,7 @@ export class Ingest implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly company = signal('');
-  protected readonly limit = signal<number | null>(null);
+  protected readonly limit = signal<number | null>(5);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly response = signal<IngestResponse | null>(null);
