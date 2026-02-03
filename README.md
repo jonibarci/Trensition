@@ -114,14 +114,9 @@ cp .env.example .env
 # 2. Start all services (PostgreSQL, backend, frontend)
 docker compose up -d
 
-# 3. Initialize database schema
-docker compose exec backend uv run python -m app.database.db --init
+# 3. Database schema is initialized automatically on backend startup
 
-# 4. Refresh Yahoo cookies (required for ingestion)
-curl -X POST http://localhost:8000/yahoo/cookies/refresh \
-  -H "Content-Type: application/json" -d '{}'
-
-# 5. Access the application
+# 4. Access the application (Yahoo cookies can be initialized from the frontend)
 # Frontend: http://localhost:4000
 # Backend API: http://localhost:8000/docs
 ```
