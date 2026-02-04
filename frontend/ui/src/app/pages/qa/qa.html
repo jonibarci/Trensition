@@ -19,25 +19,68 @@
   @if (messages().length > 0) {
     <div class="conversation">
       @for (message of messages(); track $index) {
-        <div class="message" [class.message-question]="message.type === 'question'" [class.message-answer]="message.type === 'answer'">
+        <div
+          class="message"
+          [class.message-question]="message.type === 'question'"
+          [class.message-answer]="message.type === 'answer'"
+          [class.with-aside]="message.type === 'answer' && hasOpenReferences($index, message)">
           @if (message.type === 'question') {
             <div class="message-label">You asked:</div>
             <div class="message-content">{{ message.content }}</div>
           } @else {
-            <div class="message-label">Answer:</div>
-            <div class="message-content">{{ message.content }}</div>
-            @if (message.sources && message.sources.length > 0) {
-              <div class="message-sources">
-                <strong>Sources:</strong>
-                @for (source of message.sources; track source) {
-                  <a
-                    class="source-link"
-                    [routerLink]="['/transcripts', source]"
-                    [queryParams]="{turns: getTurnIndicesForSource(source, message).join(',')}">
-                    {{ source }}
-                  </a>
+            <div class="message-main">
+              <div class="message-label">Answer:</div>
+              <div class="message-content">{{ message.content }}</div>
+              @if (message.sources && message.sources.length > 0) {
+                <div class="message-sources">
+                  <strong>Sources:</strong>
+                  @for (source of message.sources; track source) {
+                    <button
+                      type="button"
+                      class="source-link"
+                      (click)="toggleReference($index, source)">
+                      {{ isReferenceOpen($index, source) ? 'Hide' : 'Show' }} {{ source }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            @if (message.detailed_sources && message.detailed_sources.length > 0 && hasOpenReferences($index, message)) {
+              <aside class="message-aside">
+                <div class="aside-title">Referenced section</div>
+                @for (section of getReferencedSections(message, $index); track section.transcriptId) {
+                  <div class="aside-section">
+                    <div class="aside-header">
+                      <div class="aside-header-text">
+                        <div class="aside-transcript">{{ section.title }}</div>
+                        @if (section.date) {
+                          <div class="aside-meta">{{ section.date }}</div>
+                        }
+                      </div>
+                      <a
+                        class="aside-link"
+                        [routerLink]="['/transcripts', section.transcriptId]"
+                        [queryParams]="{turns: section.turnIndices.join(',')}">
+                        Open transcript
+                      </a>
+                    </div>
+                    @if (section.turns.length > 0) {
+                      <div class="aside-turns">
+                        @for (turn of section.turns; track turn.index) {
+                          <div class="aside-turn">
+                            <div class="aside-turn-label">{{ formatTurnLabel(turn) }}</div>
+                            <div class="aside-turn-text">{{ turn.text }}</div>
+                          </div>
+                        }
+                      </div>
+                    } @else if (isTranscriptLoading(section.transcriptId)) {
+                      <div class="aside-loading">Loading referenced section...</div>
+                    } @else {
+                      <div class="aside-loading">No referenced turns available.</div>
+                    }
+                  </div>
                 }
-              </div>
+              </aside>
             }
           }
         </div>
