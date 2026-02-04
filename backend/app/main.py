@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -227,17 +228,70 @@ def list_transcripts(
     try:
         # Build query
         where_clauses = []
-        params = []
+        select_params = []
+        where_params = []
+        order_params = []
         snippet_select = "LEFT(t.full_text, 200) as snippet"
 
         if company:
-            where_clauses.append("(UPPER(c.ticker) = UPPER(%s))")
-            params.append(company)
+            raw_company = company.strip()
+            ticker_candidates: List[str] = []
+            name_candidates: List[str] = []
+
+            if raw_company:
+                paren_match = re.search(r"\(([A-Za-z0-9.\-]{1,10})\)", raw_company)
+                if paren_match:
+                    ticker_candidates.append(paren_match.group(1))
+
+                if " - " in raw_company or " – " in raw_company or " — " in raw_company or "-" in raw_company:
+                    for sep in (" - ", " – ", " — ", "-"):
+                        if sep in raw_company:
+                            parts = [part.strip() for part in raw_company.split(sep) if part.strip()]
+                            if len(parts) >= 2:
+                                if re.fullmatch(r"[A-Za-z0-9.\-]{1,10}", parts[0] or ""):
+                                    ticker_candidates.append(parts[0])
+                                name_candidates.append(parts[1])
+                            break
+
+                if re.fullmatch(r"[A-Za-z0-9.\-]{1,10}", raw_company):
+                    ticker_candidates.append(raw_company)
+
+                name_candidate = re.sub(r"\s*\([^)]+\)\s*", " ", raw_company).strip()
+                if name_candidate:
+                    name_candidates.append(name_candidate)
+
+            def dedupe(values: List[str]) -> List[str]:
+                seen = set()
+                unique: List[str] = []
+                for value in values:
+                    key = value.upper()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    unique.append(value)
+                return unique
+
+            ticker_candidates = dedupe(ticker_candidates)
+            name_candidates = dedupe(name_candidates)
+
+            company_clauses: List[str] = []
+            for ticker in ticker_candidates:
+                company_clauses.append("UPPER(c.ticker) = UPPER(%s)")
+                where_params.append(ticker)
+            for name in name_candidates:
+                company_clauses.append("c.name ILIKE %s")
+                where_params.append(f"%{name}%")
+
+            if not company_clauses:
+                company_clauses.append("c.name ILIKE %s")
+                where_params.append(f"%{raw_company}%")
+
+            where_clauses.append("(" + " OR ".join(company_clauses) + ")")
 
         if q:
             # Use websearch_to_tsquery which supports quoted phrases and operators
             where_clauses.append("t.full_text_tsv @@ websearch_to_tsquery('english', %s)")
-            params.append(q)
+            where_params.append(q)
 
             # Generate contextual snippet using ts_headline to show WHERE the match occurred
             snippet_select = f"""
@@ -248,7 +302,7 @@ def list_transcripts(
                     'MaxWords=50, MinWords=25, MaxFragments=1'
                 ) as snippet
             """
-            params.insert(0 if not company else 1, q)
+            select_params.append(q)
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -267,7 +321,6 @@ def list_transcripts(
                     e.fiscal_year DESC,
                     e.fiscal_quarter DESC
             """
-            order_params = []
 
         cursor.execute(f"""
             SELECT
@@ -283,7 +336,7 @@ def list_transcripts(
             WHERE {where_sql}
             {order_by}
             LIMIT %s OFFSET %s
-        """, params + order_params + [limit, offset])
+        """, select_params + where_params + order_params + [limit, offset])
 
         rows = cursor.fetchall()
         return rows
